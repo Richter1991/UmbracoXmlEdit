@@ -1,0 +1,56 @@
+using System;
+using System.Web;
+using System.Web.Http;
+using Umbraco.Core;
+using Umbraco.Core.Models;
+using Umbraco.Core.Services;
+using Umbraco.Web.Mvc;
+using Umbraco.Web.WebApi;
+using UmbracoXmlEdit.Models;
+
+namespace UmbracoXmlEdit.Controllers
+{
+    [PluginController("XmlEdit")]
+    public class ContentController : UmbracoAuthorizedApiController 
+    {
+        readonly IContentService _contentService = ApplicationContext.Current.Services.ContentService;
+        readonly IUserService _userService = ApplicationContext.Current.Services.UserService;
+
+        [HttpGet]
+        public string GetXml(string nodeId)
+        {
+            var page = ApplicationContext.Services.ContentService.GetById(int.Parse(nodeId));
+            return GetXml(page);
+        }
+
+        private string GetXml(IContent page)
+        {
+            var xml = page.ToXml(ApplicationContext.Services.PackagingService);
+            return xml.ToString();
+        }
+
+        [HttpPost]
+        public string SaveXml(SaveXml model)
+        {
+            var item = _contentService.GetById(int.Parse(model.NodeId));
+            if (item == null)
+            {
+                throw new NullReferenceException("IContent object not found");
+            }
+
+            var currentUser = _userService.GetByUsername(HttpContext.Current.User.Identity.Name);
+
+            // Update XML
+            var xmlEdit = new XmlEdit(item);
+            item = xmlEdit.UpdateXml(model.Xml);
+
+            // Save page
+            _contentService.Save(item, currentUser.Id);
+
+            // Get the page that we just saved
+            item = _contentService.GetById(item.Id);
+
+            return GetXml(item);
+        }
+    }
+}

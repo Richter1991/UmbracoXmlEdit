@@ -1,0 +1,10 @@
+<div ng-controller="XmlEdit.ContentController" style="padding: 0 5px 0 15px;">
+    <h4>Editing "<span ng-bind="currentNode.name"></span>"</h4>
+    <textarea name="textarea" class="umb-editor umb-textarea" ng-model="model.value" rows="25"></textarea>
+    <a href="" class="btn btn-link" ng-click="hideDialog()">
+        <localize key="general_cancel">Cancel</localize>
+    </a>
+    <button class="btn btn-success" ng-click="saveXml()">
+        <localize key="buttons_save">Save</localize>
+    </button>
+</div>
