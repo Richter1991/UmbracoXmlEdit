@@ -45,7 +45,7 @@ namespace UmbracoXmlEdit.Controllers
 
             // Update XML
             var xmlEdit = new XmlEdit(_logger, _dataTypeService);
-            item = xmlEdit.UpdateXml(item, model.Xml);
+            item = xmlEdit.UpdateContentFromXml(item, model.Xml);
 
             // Save page
             _contentService.Save(item, currentUser.Id);

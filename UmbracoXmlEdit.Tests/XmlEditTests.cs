@@ -18,8 +18,15 @@ namespace UmbracoXmlEdit.Tests
             }
         }
 
-        Mock<IDataTypeService> SetupDataTypeService(IDataTypeDefinition dataTypeDefinition)
+        readonly IDataTypeDefinition _defaultDataTypeDefinition = new DataTypeDefinition("");
+
+        Mock<IDataTypeService> SetupDataTypeService(IDataTypeDefinition dataTypeDefinition = null)
         {
+            if(dataTypeDefinition == null)
+            {
+                dataTypeDefinition = _defaultDataTypeDefinition;
+            }
+
             var dataTypeService = new Mock<IDataTypeService>();
             dataTypeService.Setup(d => d.GetDataTypeDefinitionById(0)).Returns(dataTypeDefinition);
             return dataTypeService;
@@ -39,7 +46,6 @@ namespace UmbracoXmlEdit.Tests
             var propertyType = new PropertyType(dataTypeInteger);
 
             var result = xmlEdit.GetValue(propertyElement, propertyType);
-
             Assert.AreEqual(typeof(int), result.GetType());
             Assert.AreEqual(123, (int)result);
         }
@@ -64,17 +70,42 @@ namespace UmbracoXmlEdit.Tests
         [Test]
         public void GetValue_can_get_string_value()
         {
-            var dataType = new DataTypeDefinition("");
-            var dataTypeService = SetupDataTypeService(dataType);
+            var dataTypeService = SetupDataTypeService();
 
             var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
             var propertyElement = XElement.Parse("<MyProperty>Lorem ipsum</MyProperty>");
-            var propertyType = new PropertyType(dataType);
+            var propertyType = new PropertyType(_defaultDataTypeDefinition);
 
             var result = xmlEdit.GetValue(propertyElement, propertyType);
-
             Assert.AreEqual(typeof(string), result.GetType());
             Assert.AreEqual("Lorem ipsum", result.ToString());
+        }
+
+        [Test]
+        public void UpdatePage_can_change_default_property_values()
+        {
+            var dataTypeService = SetupDataTypeService();
+
+            var contentType = new ContentType(-1);
+            var content = new Content("Home", 11, contentType);
+
+            string xml = "<home parentID=\"22\" sortOrder=\"7\" createDate=\"2016-04-23T13:37:59\"></home>";
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var result = xmlEdit.UpdateContentFromXml(content, xml);
+
+            // Parent ID
+            Assert.AreEqual(22, result.ParentId);
+
+            // Sort order
+            Assert.AreEqual(7, result.SortOrder);
+
+            // Create date
+            Assert.AreEqual(2016, result.CreateDate.Year);
+            Assert.AreEqual(4, result.CreateDate.Month);
+            Assert.AreEqual(23, result.CreateDate.Day);
+            Assert.AreEqual(13, result.CreateDate.Hour);
+            Assert.AreEqual(37, result.CreateDate.Minute);
+            Assert.AreEqual(59, result.CreateDate.Second);
         }
     }
 }

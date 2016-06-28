@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-using Umbraco.Core;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Services;
@@ -14,24 +13,30 @@ namespace UmbracoXmlEdit
         readonly ILogger _logger;
         readonly IDataTypeService _dataTypeService;
         IContent _content;
+        XElement _xml;
 
         public XmlEdit(ILogger logger, IDataTypeService dataTypeService)
         {
             _logger = logger;
             _dataTypeService = dataTypeService;
-
         }
 
-        public IContent UpdateXml(IContent content, string xml)
+        /// <summary>
+        /// Update content object from XML
+        /// </summary>
+        /// <param name="content">Content/page to update</param>
+        /// <param name="xml">Updated XML</param>
+        /// <returns></returns>
+        public IContent UpdateContentFromXml(IContent content, string xml)
         {
             _content = content;
+            _xml = XElement.Parse(xml);
 
-            var rootElement = XElement.Parse(xml);
-            var propertyElements = rootElement.Elements().ToList();
+            var propertyElements = _xml.Elements().ToList();
             var properties = _content.Properties;
 
             // UpdateContentPropertyValues
-            UpdateContentPropertyValues(rootElement);
+            UpdateContentPropertyValues();
 
             // UpdateExistingPropertyValues
             UpdateExistingPropertyValues(propertyElements, properties);
@@ -42,34 +47,34 @@ namespace UmbracoXmlEdit
             return _content;
         }
 
-        private void UpdateContentPropertyValues(XElement rootElement)
+        private void UpdateContentPropertyValues()
         {
             // TODO: Update all possible properties on IContent from node-attributes
 
-            //SetContentPropertyValue<int>(rootElement, nameof(IContent.Id), "id");
-            //SetContentPropertyValue<Guid>(rootElement, nameof(IContent.Key), "key");
-            SetContentPropertyValue<int>(rootElement, nameof(IContent.ParentId), "parentID");
-            //SetContentPropertyValue<int>(rootElement, nameof(IContent.Level), "level");
-            //SetContentPropertyValue<int>(rootElement, nameof(IContent.CreatorId), "creatorID");
-            SetContentPropertyValue<int>(rootElement, nameof(IContent.SortOrder), "sortOrder");
-            SetContentPropertyValue<DateTime>(rootElement, nameof(IContent.CreateDate), "createDate");
-            //SetContentPropertyValue<DateTime>(rootElement, nameof(IContent.UpdateDate), "updateDate"); // Can't be updated since it'll be updated when object is saved after this
-            //SetContentPropertyValue<string>(rootElement, nameof(IContent.), "nodeName");
-            //SetContentPropertyValue<>(rootElement, nameof(IContent.), "urlName");
-            //SetContentPropertyValue<string>(rootElement, nameof(IContent.Path), "path");
-            //SetContentPropertyValue<>(rootElement, nameof(IContent.), "nodeType");
-            //SetContentPropertyValue<>(rootElement, nameof(IContent.), "creatorName");
-            //SetContentPropertyValue<int>(rootElement, nameof(IContent.), "writerName");
-            //SetContentPropertyValue<int>(rootElement, nameof(IContent.WriterId), "writerID");
-            //SetContentPropertyValue<ITemplate>(rootElement, nameof(IContent.Template), "template");
-            //SetContentPropertyValue<>(rootElement, nameof(IContent.), "nodeTypeAlias");
+            //SetContentPropertyValue<int>(nameof(IContent.Id), "id");
+            //SetContentPropertyValue<Guid>(nameof(IContent.Key), "key");
+            SetContentPropertyValue<int>(nameof(IContent.ParentId), "parentID");
+            //SetContentPropertyValue<int>(nameof(IContent.Level), "level");
+            //SetContentPropertyValue<int>(nameof(IContent.CreatorId), "creatorID");
+            SetContentPropertyValue<int>(nameof(IContent.SortOrder), "sortOrder");
+            SetContentPropertyValue<DateTime>(nameof(IContent.CreateDate), "createDate");
+            //SetContentPropertyValue<DateTime>(nameof(IContent.UpdateDate), "updateDate"); // Can't be updated since it'll be updated when object is saved after this
+            //SetContentPropertyValue<string>(nameof(IContent.), "nodeName");
+            //SetContentPropertyValue<>(nameof(IContent.), "urlName");
+            //SetContentPropertyValue<string>(nameof(IContent.Path), "path");
+            //SetContentPropertyValue<>(nameof(IContent.), "nodeType");
+            //SetContentPropertyValue<>(nameof(IContent.), "creatorName");
+            //SetContentPropertyValue<int>(nameof(IContent.), "writerName");
+            //SetContentPropertyValue<int>(nameof(IContent.WriterId), "writerID");
+            //SetContentPropertyValue<ITemplate>(nameof(IContent.Template), "template");
+            //SetContentPropertyValue<>(nameof(IContent.), "nodeTypeAlias");
         }
 
-        private void SetContentPropertyValue<T>(XElement rootElement, string propertyName, string attribute)
+        private void SetContentPropertyValue<T>(string propertyName, string attribute)
         {
             object objectValue = null;
 
-            string value = rootElement.Attribute(attribute).Value;
+            string value = _xml.Attribute(attribute).Value;
             if (typeof(T) == typeof(int))
             {
                 int intValue;
