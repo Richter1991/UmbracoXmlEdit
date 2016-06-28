@@ -47,8 +47,15 @@ namespace UmbracoXmlEdit.Controllers
             var xmlEdit = new XmlEdit(_logger, _dataTypeService);
             item = xmlEdit.UpdateContentFromXml(item, model.Xml);
 
-            // Save page
-            _contentService.Save(item, currentUser.Id);
+            if(xmlEdit.Successful)
+            {
+                // Save page
+                _contentService.Save(item, currentUser.Id);
+            }
+            else
+            {
+                // TODO: Show an error
+            }
 
             // Get the page that we just saved
             item = _contentService.GetById(item.Id);

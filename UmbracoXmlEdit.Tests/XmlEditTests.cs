@@ -4,6 +4,7 @@ using Umbraco.Core.Models;
 using Umbraco.Core.Services;
 using Umbraco.Core.Logging;
 using System.Xml.Linq;
+using System.Collections.Generic;
 
 namespace UmbracoXmlEdit.Tests
 {
@@ -91,7 +92,9 @@ namespace UmbracoXmlEdit.Tests
 
             string xml = "<home parentID=\"22\" sortOrder=\"7\" createDate=\"2016-04-23T13:37:59\"></home>";
             var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+
             var result = xmlEdit.UpdateContentFromXml(content, xml);
+            Assert.IsTrue(xmlEdit.Successful);
 
             // Parent ID
             Assert.AreEqual(22, result.ParentId);
@@ -106,6 +109,22 @@ namespace UmbracoXmlEdit.Tests
             Assert.AreEqual(13, result.CreateDate.Hour);
             Assert.AreEqual(37, result.CreateDate.Minute);
             Assert.AreEqual(59, result.CreateDate.Second);
+        }
+
+        [Test]
+        public void UpdatePage_handle_invalid_xml()
+        {
+            var dataTypeService = SetupDataTypeService();
+
+            var contentType = new ContentType(-1);
+            var content = new Content("Home", 11, contentType);
+
+            string xml = "<home parentID=\"22\">"; // No closing tag
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+
+            var result = xmlEdit.UpdateContentFromXml(content, xml);
+            Assert.AreEqual(11, result.ParentId); // Make sure we got back content without changes
+            Assert.IsFalse(xmlEdit.Successful);
         }
     }
 }

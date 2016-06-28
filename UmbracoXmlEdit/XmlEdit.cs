@@ -15,6 +15,11 @@ namespace UmbracoXmlEdit
         IContent _content;
         XElement _xml;
 
+        /// <summary>
+        /// Wheter update of XML was successfully or not
+        /// </summary>
+        public bool Successful { get; private set; }
+
         public XmlEdit(ILogger logger, IDataTypeService dataTypeService)
         {
             _logger = logger;
@@ -30,21 +35,39 @@ namespace UmbracoXmlEdit
         public IContent UpdateContentFromXml(IContent content, string xml)
         {
             _content = content;
-            _xml = XElement.Parse(xml);
 
-            var propertyElements = _xml.Elements().ToList();
-            var properties = _content.Properties;
+            if (TryParse(xml))
+            {
+                var propertyElements = _xml.Elements().ToList();
+                var properties = _content.Properties;
 
-            // UpdateContentPropertyValues
-            UpdateContentPropertyValues();
+                // UpdateContentPropertyValues
+                UpdateContentPropertyValues();
 
-            // UpdateExistingPropertyValues
-            UpdateExistingPropertyValues(propertyElements, properties);
+                // Update value for custom properties
+                UpdateCustomPropertyValues(propertyElements, properties);
 
-            // Remove properties existing on IContent but not in saved XML
-            _content.Properties = RemoveMissingProperties(propertyElements, properties);
+                // Remove properties existing on IContent but not in saved XML
+                _content.Properties = RemoveMissingProperties(propertyElements, properties);
+
+                // Update successful
+                Successful = true;
+            }
 
             return _content;
+        }
+
+        private bool TryParse(string xml)
+        {
+            try
+            {
+                _xml = XElement.Parse(xml);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void UpdateContentPropertyValues()
@@ -70,11 +93,18 @@ namespace UmbracoXmlEdit
             //SetContentPropertyValue<>(nameof(IContent.), "nodeTypeAlias");
         }
 
-        private void SetContentPropertyValue<T>(string propertyName, string attribute)
+        private void SetContentPropertyValue<T>(string propertyName, string attributeName)
         {
             object objectValue = null;
 
-            string value = _xml.Attribute(attribute).Value;
+            var attribute = _xml.Attribute(attributeName);
+            if(attribute == null)
+            {
+                // If attribute doesn't exist in passed XML we don't do anything (not trying to set value and don't remove it)
+                return;
+            }
+
+            string value = attribute.Value;
             if (typeof(T) == typeof(int))
             {
                 int intValue;
@@ -84,7 +114,7 @@ namespace UmbracoXmlEdit
                 }
                 else
                 {
-                    throw new InvalidCastException(""); // TODO
+                    throw new InvalidCastException(""); // TODO: Message + unit test
                 }
             }
             else if (typeof(T) == typeof(Guid))
@@ -108,9 +138,9 @@ namespace UmbracoXmlEdit
         }
 
         /// <summary>
-        /// Update value for each existing property
+        /// Update value for each custom property
         /// </summary>
-        private void UpdateExistingPropertyValues(List<XElement> propertyElements, PropertyCollection properties)
+        private void UpdateCustomPropertyValues(List<XElement> propertyElements, PropertyCollection properties)
         {
             foreach (var propertyElement in propertyElements)
             {
