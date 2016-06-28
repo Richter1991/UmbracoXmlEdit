@@ -2,6 +2,7 @@ using System;
 using System.Web;
 using System.Web.Http;
 using Umbraco.Core;
+using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Services;
 using Umbraco.Web.Mvc;
@@ -15,6 +16,8 @@ namespace UmbracoXmlEdit.Controllers
     {
         readonly IContentService _contentService = ApplicationContext.Current.Services.ContentService;
         readonly IUserService _userService = ApplicationContext.Current.Services.UserService;
+        readonly ILogger _logger = ApplicationContext.Current.ProfilingLogger.Logger;
+        readonly IDataTypeService _dataTypeService = ApplicationContext.Current.Services.DataTypeService;
 
         [HttpGet]
         public string GetXml(string nodeId)
@@ -41,8 +44,8 @@ namespace UmbracoXmlEdit.Controllers
             var currentUser = _userService.GetByUsername(HttpContext.Current.User.Identity.Name);
 
             // Update XML
-            var xmlEdit = new XmlEdit(item);
-            item = xmlEdit.UpdateXml(model.Xml);
+            var xmlEdit = new XmlEdit(_logger, _dataTypeService);
+            item = xmlEdit.UpdateXml(item, model.Xml);
 
             // Save page
             _contentService.Save(item, currentUser.Id);

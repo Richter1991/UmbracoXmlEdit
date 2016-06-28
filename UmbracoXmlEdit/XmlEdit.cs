@@ -11,20 +11,24 @@ namespace UmbracoXmlEdit
 {
     public class XmlEdit
     {
-        public IContent Content { get; private set; }
-        readonly ILogger _logger = ApplicationContext.Current.ProfilingLogger.Logger;
-        readonly IDataTypeService _dataTypeService = ApplicationContext.Current.Services.DataTypeService;
+        readonly ILogger _logger;
+        readonly IDataTypeService _dataTypeService;
+        IContent _content;
 
-        public XmlEdit(IContent content)
+        public XmlEdit(ILogger logger, IDataTypeService dataTypeService)
         {
-            Content = content;
+            _logger = logger;
+            _dataTypeService = dataTypeService;
+
         }
 
-        public IContent UpdateXml(string xml)
+        public IContent UpdateXml(IContent content, string xml)
         {
+            _content = content;
+
             var rootElement = XElement.Parse(xml);
             var propertyElements = rootElement.Elements().ToList();
-            var properties = Content.Properties;
+            var properties = _content.Properties;
 
             // UpdateContentPropertyValues
             UpdateContentPropertyValues(rootElement);
@@ -33,9 +37,9 @@ namespace UmbracoXmlEdit
             UpdateExistingPropertyValues(propertyElements, properties);
 
             // Remove properties existing on IContent but not in saved XML
-            Content.Properties = RemoveMissingProperties(propertyElements, properties);
+            _content.Properties = RemoveMissingProperties(propertyElements, properties);
 
-            return Content;
+            return _content;
         }
 
         private void UpdateContentPropertyValues(XElement rootElement)
@@ -94,7 +98,7 @@ namespace UmbracoXmlEdit
 
             if(objectValue != null)
             {
-                Content.GetType().GetProperty(propertyName).SetValue(Content, objectValue);
+                _content.GetType().GetProperty(propertyName).SetValue(_content, objectValue);
             }
         }
 
@@ -106,11 +110,11 @@ namespace UmbracoXmlEdit
             foreach (var propertyElement in propertyElements)
             {
                 string propertyTypeAlias = propertyElement.Name.LocalName;
-                if (Content.HasProperty(propertyTypeAlias))
+                if (_content.HasProperty(propertyTypeAlias))
                 {
                     var propertyType = properties[propertyTypeAlias].PropertyType;
                     object value = GetValue(propertyElement, propertyType);
-                    Content.SetValue(propertyTypeAlias, value);
+                    _content.SetValue(propertyTypeAlias, value);
                 }
                 else
                 {
@@ -138,16 +142,20 @@ namespace UmbracoXmlEdit
             return properties;
         }
 
-        private object GetValue(XElement propertyElement, PropertyType propertyType)
+        public object GetValue(XElement propertyElement, PropertyType propertyType)
         {
             string propertyElementValue = propertyElement.Value;
 
-            object value;
+            object value = null;
             var dataTypeDefinition = _dataTypeService.GetDataTypeDefinitionById(propertyType.DataTypeDefinitionId).DatabaseType;
             switch (dataTypeDefinition)
             {
                 case DataTypeDatabaseType.Integer:
-                    value = int.Parse(propertyElementValue);
+                    int typedValue;
+                    if(int.TryParse(propertyElementValue, out typedValue))
+                    {
+                        value = typedValue;
+                    }
                     break;
                 default:
                     value = propertyElementValue;
