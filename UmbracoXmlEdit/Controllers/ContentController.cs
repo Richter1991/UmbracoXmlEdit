@@ -23,10 +23,10 @@ namespace UmbracoXmlEdit.Controllers
         public string GetXml(string nodeId)
         {
             var page = ApplicationContext.Services.ContentService.GetById(int.Parse(nodeId));
-            return GetXml(page);
+            return ToXml(page);
         }
 
-        private string GetXml(IContent page)
+        private string ToXml(IContent page)
         {
             var xml = page.ToXml(ApplicationContext.Services.PackagingService);
             return xml.ToString();
@@ -35,8 +35,9 @@ namespace UmbracoXmlEdit.Controllers
         [HttpPost]
         public string SaveXml(SaveXml model)
         {
-            var item = _contentService.GetById(int.Parse(model.NodeId));
-            if (item == null)
+            int contentType = int.Parse(model.ContentId);
+            var content = _contentService.GetById(contentType);
+            if (content == null)
             {
                 throw new NullReferenceException("IContent object not found");
             }
@@ -44,13 +45,13 @@ namespace UmbracoXmlEdit.Controllers
             var currentUser = _userService.GetByUsername(HttpContext.Current.User.Identity.Name);
 
             // Update XML
-            var xmlEdit = new XmlEdit(_logger, _dataTypeService);
-            item = xmlEdit.UpdateContentFromXml(item, model.Xml);
+            var xmlEdit = new XmlEdit(_logger, _dataTypeService, content);
+            xmlEdit.UpdateContentFromXml(model.Xml);
 
             if(xmlEdit.Successful)
             {
                 // Save page
-                _contentService.Save(item, currentUser.Id);
+                _contentService.Save(xmlEdit.Content, currentUser.Id);
             }
             else
             {
@@ -58,9 +59,9 @@ namespace UmbracoXmlEdit.Controllers
             }
 
             // Get the page that we just saved
-            item = _contentService.GetById(item.Id);
+            content = _contentService.GetById(content.Id);
 
-            return GetXml(item);
+            return ToXml(content);
         }
     }
 }

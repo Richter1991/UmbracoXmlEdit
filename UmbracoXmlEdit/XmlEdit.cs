@@ -20,10 +20,19 @@ namespace UmbracoXmlEdit
         /// </summary>
         public bool Successful { get; private set; }
 
-        public XmlEdit(ILogger logger, IDataTypeService dataTypeService)
+        public IContent Content
+        {
+            get
+            {
+                return _content;
+            }
+        }
+
+        public XmlEdit(ILogger logger, IDataTypeService dataTypeService, IContent content)
         {
             _logger = logger;
             _dataTypeService = dataTypeService;
+            _content = content;
         }
 
         /// <summary>
@@ -31,11 +40,8 @@ namespace UmbracoXmlEdit
         /// </summary>
         /// <param name="content">Content/page to update</param>
         /// <param name="xml">Updated XML</param>
-        /// <returns></returns>
-        public IContent UpdateContentFromXml(IContent content, string xml)
+        public void UpdateContentFromXml(string xml)
         {
-            _content = content;
-
             if (TryParse(xml))
             {
                 var propertyElements = _xml.Elements().ToList();
@@ -53,8 +59,6 @@ namespace UmbracoXmlEdit
                 // Update successful
                 Successful = true;
             }
-
-            return _content;
         }
 
         private bool TryParse(string xml)

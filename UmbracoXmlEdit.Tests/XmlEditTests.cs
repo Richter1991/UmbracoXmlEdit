@@ -42,7 +42,7 @@ namespace UmbracoXmlEdit.Tests
             };
             var dataTypeService = SetupDataTypeService(dataTypeInteger);
 
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, null);
             var propertyElement = XElement.Parse("<MyProperty>123</MyProperty>");
             var propertyType = new PropertyType(dataTypeInteger);
 
@@ -60,12 +60,12 @@ namespace UmbracoXmlEdit.Tests
             };
             var dataTypeService = SetupDataTypeService(dataTypeInteger);
 
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, null);
             var propertyElement = XElement.Parse("<MyProperty>Try passing text</MyProperty>");
             var propertyType = new PropertyType(dataTypeInteger);
 
-            var result = xmlEdit.GetValue(propertyElement, new PropertyType(dataTypeInteger));
-            Assert.IsNull(result);
+            var value = xmlEdit.GetValue(propertyElement, new PropertyType(dataTypeInteger));
+            Assert.IsNull(value);
         }
 
         [Test]
@@ -73,13 +73,13 @@ namespace UmbracoXmlEdit.Tests
         {
             var dataTypeService = SetupDataTypeService();
 
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, null);
             var propertyElement = XElement.Parse("<MyProperty>Lorem ipsum</MyProperty>");
             var propertyType = new PropertyType(_defaultDataTypeDefinition);
 
-            var result = xmlEdit.GetValue(propertyElement, propertyType);
-            Assert.AreEqual(typeof(string), result.GetType());
-            Assert.AreEqual("Lorem ipsum", result.ToString());
+            var value = xmlEdit.GetValue(propertyElement, propertyType);
+            Assert.AreEqual(typeof(string), value.GetType());
+            Assert.AreEqual("Lorem ipsum", value.ToString());
         }
 
         [Test]
@@ -91,24 +91,26 @@ namespace UmbracoXmlEdit.Tests
             var content = new Content("Home", 11, contentType);
 
             string xml = "<home parentID=\"22\" sortOrder=\"7\" createDate=\"2016-04-23T13:37:59\"></home>";
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
 
-            var result = xmlEdit.UpdateContentFromXml(content, xml);
+            xmlEdit.UpdateContentFromXml(xml);
             Assert.IsTrue(xmlEdit.Successful);
 
+            var updatedContent = xmlEdit.Content;
+
             // Parent ID
-            Assert.AreEqual(22, result.ParentId);
+            Assert.AreEqual(22, updatedContent.ParentId);
 
             // Sort order
-            Assert.AreEqual(7, result.SortOrder);
+            Assert.AreEqual(7, updatedContent.SortOrder);
 
             // Create date
-            Assert.AreEqual(2016, result.CreateDate.Year);
-            Assert.AreEqual(4, result.CreateDate.Month);
-            Assert.AreEqual(23, result.CreateDate.Day);
-            Assert.AreEqual(13, result.CreateDate.Hour);
-            Assert.AreEqual(37, result.CreateDate.Minute);
-            Assert.AreEqual(59, result.CreateDate.Second);
+            Assert.AreEqual(2016, updatedContent.CreateDate.Year);
+            Assert.AreEqual(4, updatedContent.CreateDate.Month);
+            Assert.AreEqual(23, updatedContent.CreateDate.Day);
+            Assert.AreEqual(13, updatedContent.CreateDate.Hour);
+            Assert.AreEqual(37, updatedContent.CreateDate.Minute);
+            Assert.AreEqual(59, updatedContent.CreateDate.Second);
         }
 
         [Test]
@@ -120,11 +122,11 @@ namespace UmbracoXmlEdit.Tests
             var content = new Content("Home", 11, contentType);
 
             string xml = "<home parentID=\"22\">"; // No closing tag
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            xmlEdit.UpdateContentFromXml(xml);
 
-            var result = xmlEdit.UpdateContentFromXml(content, xml);
-            Assert.AreEqual(11, result.ParentId, "ParentId shouldn't be updated");
             Assert.IsFalse(xmlEdit.Successful);
+            Assert.AreEqual(11, xmlEdit.Content.ParentId, "ParentId shouldn't be updated");
         }
 
         [Test]
@@ -138,11 +140,11 @@ namespace UmbracoXmlEdit.Tests
             Assert.IsNull(content.GetValue<string>(propertyAlias));
 
             string xml = "<home><contentMiddle>Lorem ipsum!</contentMiddle></home>"; // XML for current IContent as a string
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            xmlEdit.UpdateContentFromXml(xml);
 
-            var updatedContent = xmlEdit.UpdateContentFromXml(content, xml);
             Assert.IsTrue(xmlEdit.Successful);
-            Assert.AreEqual("Lorem ipsum!", updatedContent.GetValue<string>(propertyAlias));
+            Assert.AreEqual("Lorem ipsum!", xmlEdit.Content.GetValue<string>(propertyAlias));
         }
 
         [Test]
@@ -158,11 +160,11 @@ namespace UmbracoXmlEdit.Tests
             Assert.AreEqual("Lorem ipsum!", content.Properties[0].Value);
             
             string xml = "<home></home>"; // XML for current IContent as a string
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            xmlEdit.UpdateContentFromXml(xml);
 
-            var updatedContent = xmlEdit.UpdateContentFromXml(content, xml);
             Assert.IsTrue(xmlEdit.Successful);
-            Assert.AreEqual(0, updatedContent.Properties.Count);
+            Assert.AreEqual(0, xmlEdit.Content.Properties.Count);
         }
     }
 }
