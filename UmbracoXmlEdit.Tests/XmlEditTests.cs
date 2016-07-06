@@ -4,7 +4,7 @@ using Umbraco.Core.Models;
 using Umbraco.Core.Services;
 using Umbraco.Core.Logging;
 using System.Xml.Linq;
-using System.Collections.Generic;
+using UmbracoXmlEdit.Tests.TestHelpers;
 
 namespace UmbracoXmlEdit.Tests
 {
@@ -23,7 +23,7 @@ namespace UmbracoXmlEdit.Tests
 
         Mock<IDataTypeService> SetupDataTypeService(IDataTypeDefinition dataTypeDefinition = null)
         {
-            if(dataTypeDefinition == null)
+            if (dataTypeDefinition == null)
             {
                 dataTypeDefinition = _defaultDataTypeDefinition;
             }
@@ -123,8 +123,46 @@ namespace UmbracoXmlEdit.Tests
             var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
 
             var result = xmlEdit.UpdateContentFromXml(content, xml);
-            Assert.AreEqual(11, result.ParentId); // Make sure we got back content without changes
+            Assert.AreEqual(11, result.ParentId, "ParentId shouldn't be updated");
             Assert.IsFalse(xmlEdit.Successful);
+        }
+
+        [Test]
+        public void UpdatePage_update_value_for_custom_property()
+        {
+            string propertyAlias = "contentMiddle";
+            var dataTypeService = SetupDataTypeService();
+            var propertyType = new PropertyType(_defaultDataTypeDefinition, propertyAlias);
+
+            var content = MockedContent.CreateContent("Home", propertyType);
+            Assert.IsNull(content.GetValue<string>(propertyAlias));
+
+            string xml = "<home><contentMiddle>Lorem ipsum!</contentMiddle></home>"; // XML for current IContent as a string
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+
+            var updatedContent = xmlEdit.UpdateContentFromXml(content, xml);
+            Assert.IsTrue(xmlEdit.Successful);
+            Assert.AreEqual("Lorem ipsum!", updatedContent.GetValue<string>(propertyAlias));
+        }
+
+        [Test]
+        public void UpdatePage_remove_properties_that_is_removed_from_XML_string()
+        {
+            string propertyAlias = "contentMiddle";
+            var dataTypeService = SetupDataTypeService();
+            var propertyType = new PropertyType(_defaultDataTypeDefinition, propertyAlias);
+
+            var content = MockedContent.CreateContent("Home", propertyType);
+            content.SetValue(propertyAlias, "Lorem ipsum!");
+            Assert.AreEqual(1, content.Properties.Count);
+            Assert.AreEqual("Lorem ipsum!", content.Properties[0].Value);
+            
+            string xml = "<home></home>"; // XML for current IContent as a string
+            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object);
+
+            var updatedContent = xmlEdit.UpdateContentFromXml(content, xml);
+            Assert.IsTrue(xmlEdit.Successful);
+            Assert.AreEqual(0, updatedContent.Properties.Count);
         }
     }
 }

@@ -273,6 +273,7 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="TestHelpers\MockedContent.cs" />
     <Compile Include="XmlEditTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
