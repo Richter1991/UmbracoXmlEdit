@@ -2,9 +2,9 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/UmbracoXmlEdit.Tests/obj/Debug
-/UmbracoXmlEdit.Tests/bin/Debug
-/UmbracoXmlEdit/obj/Debug
+/UmbracoXmlEdit.Tests/obj
+/UmbracoXmlEdit.Tests/bin
+/UmbracoXmlEdit/obj
 /UmbracoXmlEdit/bin
 /packages
 /.vs
