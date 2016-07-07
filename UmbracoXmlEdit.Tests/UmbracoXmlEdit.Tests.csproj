@@ -273,12 +273,16 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
-    <Compile Include="TestHelpers\MockedContent.cs" />
+    <Compile Include="TestHelpers\ModelsBase.cs" />
+    <Compile Include="TestHelpers\ServicesBase.cs" />
+    <Compile Include="TestHelpers\TestsBase.cs" />
     <Compile Include="XmlEditTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

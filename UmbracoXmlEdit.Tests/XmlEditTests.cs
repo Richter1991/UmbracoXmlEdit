@@ -1,50 +1,23 @@
-﻿using Moq;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using Umbraco.Core.Models;
-using Umbraco.Core.Services;
-using Umbraco.Core.Logging;
 using System.Xml.Linq;
 using UmbracoXmlEdit.Tests.TestHelpers;
+using System.Collections.Generic;
+using System;
 
 namespace UmbracoXmlEdit.Tests
 {
     [TestFixture]
-    public class XmlEditTests
+    public class XmlEditTests : TestsBase
     {
-        Mock<ILogger> _logger
-        {
-            get
-            {
-                return new Mock<ILogger>();
-            }
-        }
-
-        readonly IDataTypeDefinition _defaultDataTypeDefinition = new DataTypeDefinition("");
-
-        Mock<IDataTypeService> SetupDataTypeService(IDataTypeDefinition dataTypeDefinition = null)
-        {
-            if (dataTypeDefinition == null)
-            {
-                dataTypeDefinition = _defaultDataTypeDefinition;
-            }
-
-            var dataTypeService = new Mock<IDataTypeService>();
-            dataTypeService.Setup(d => d.GetDataTypeDefinitionById(0)).Returns(dataTypeDefinition);
-            return dataTypeService;
-        }
-
         [Test]
         public void GetValue_can_get_integer_value()
         {
-            var dataTypeInteger = new DataTypeDefinition("")
-            {
-                DatabaseType = DataTypeDatabaseType.Integer
-            };
-            var dataTypeService = SetupDataTypeService(dataTypeInteger);
+            var dataTypeInteger = TestModels.MockDataTypeDefinition(DataTypeDatabaseType.Integer);
 
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, null);
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(dataTypeInteger), null, null);
             var propertyElement = XElement.Parse("<MyProperty>123</MyProperty>");
-            var propertyType = new PropertyType(dataTypeInteger);
+            var propertyType = TestModels.CreatePropertyType("propertyAlias", dataTypeInteger);
 
             var result = xmlEdit.GetValue(propertyElement, propertyType);
             Assert.AreEqual(typeof(int), result.GetType());
@@ -54,28 +27,22 @@ namespace UmbracoXmlEdit.Tests
         [Test]
         public void GetValue_can_handle_invalid_integer_value()
         {
-            var dataTypeInteger = new DataTypeDefinition("")
-            {
-                DatabaseType = DataTypeDatabaseType.Integer
-            };
-            var dataTypeService = SetupDataTypeService(dataTypeInteger);
+            var dataTypeInteger = TestModels.MockDataTypeDefinition(DataTypeDatabaseType.Integer);
 
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, null);
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(dataTypeInteger), null, null);
             var propertyElement = XElement.Parse("<MyProperty>Try passing text</MyProperty>");
-            var propertyType = new PropertyType(dataTypeInteger);
+            var propertyType = TestModels.CreatePropertyType("propertyAlias", dataTypeInteger);
 
-            var value = xmlEdit.GetValue(propertyElement, new PropertyType(dataTypeInteger));
+            var value = xmlEdit.GetValue(propertyElement, propertyType);
             Assert.IsNull(value);
         }
 
         [Test]
         public void GetValue_can_get_string_value()
         {
-            var dataTypeService = SetupDataTypeService();
-
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, null);
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(), null, null);
             var propertyElement = XElement.Parse("<MyProperty>Lorem ipsum</MyProperty>");
-            var propertyType = new PropertyType(_defaultDataTypeDefinition);
+            var propertyType = TestModels.CreatePropertyType("propertyAlias");
 
             var value = xmlEdit.GetValue(propertyElement, propertyType);
             Assert.AreEqual(typeof(string), value.GetType());
@@ -85,24 +52,43 @@ namespace UmbracoXmlEdit.Tests
         [Test]
         public void UpdatePage_can_change_default_property_values()
         {
-            var dataTypeService = SetupDataTypeService();
+            var key = Guid.NewGuid();
 
-            var contentType = new ContentType(-1);
-            var content = new Content("Home", 11, contentType);
+            // Example XML
+            // <home parentID=\"1077\" sortOrder=\"7\" createDate=\"2016-04-23T13:37:59\" nodeName=\"My firstpage\"></home>
 
-            string xml = "<home parentID=\"22\" sortOrder=\"7\" createDate=\"2016-04-23T13:37:59\"></home>";
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            var xmlAttributes = new List<XAttribute>
+            {
+                new XAttribute(XName.Get("id"), 1078),
+                new XAttribute(XName.Get("parentID"), 1077),
+                new XAttribute(XName.Get("sortOrder"), 7),
+                new XAttribute(XName.Get("createDate"), "2016-04-23T13:37:59"),
+                new XAttribute(XName.Get("nodeName"), "My firstpage"),
+                new XAttribute(XName.Get("creatorID"), 123),
+                new XAttribute(XName.Get("writerID"), 99),
+                new XAttribute(XName.Get("path"), "-1,1077,1078"),
+                new XAttribute(XName.Get("level"), 3),
+                new XAttribute(XName.Get("key"), key.ToString()),
+            };
+            var xmlDocument = new XDocument(new XElement(XName.Get("home"), xmlAttributes));
+
+            string xml = xmlDocument.ToString();
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(), null, TestModels.CreateContent());
 
             xmlEdit.UpdateContentFromXml(xml);
             Assert.IsTrue(xmlEdit.Successful);
 
             var updatedContent = xmlEdit.Content;
 
-            // Parent ID
-            Assert.AreEqual(22, updatedContent.ParentId);
-
-            // Sort order
+            Assert.AreEqual(1078, updatedContent.Id);
+            Assert.AreEqual(1077, updatedContent.ParentId);
             Assert.AreEqual(7, updatedContent.SortOrder);
+            Assert.AreEqual("My firstpage", updatedContent.Name);
+            Assert.AreEqual(123, updatedContent.CreatorId);
+            Assert.AreEqual(99, updatedContent.WriterId);
+            Assert.AreEqual("-1,1077,1078", updatedContent.Path);
+            Assert.AreEqual(3, updatedContent.Level);
+            Assert.AreEqual(key, updatedContent.Key);
 
             // Create date
             Assert.AreEqual(2016, updatedContent.CreateDate.Year);
@@ -114,33 +100,45 @@ namespace UmbracoXmlEdit.Tests
         }
 
         [Test]
+        public void UpdatePage_can_change_template()
+        {
+            var template = TestModels.CreateTemplate(9893, "Blog post", "blogPost");
+            var fileService = TestServices.MockFileService(template);
+            
+
+            string xml = string.Format("<blogPost template=\"{0}\"></blogPost>", template.Id);
+            var content = TestModels.CreateContent();
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(), fileService, content);
+            xmlEdit.UpdateContentFromXml(xml);
+
+            Assert.IsNotNull(xmlEdit.Content.Template);
+            Assert.AreEqual(template.Id, xmlEdit.Content.Template.Id);
+            Assert.AreEqual(template.Alias, xmlEdit.Content.Template.Alias);
+            Assert.AreEqual(template.Name, xmlEdit.Content.Template.Name);
+        }
+
+        [Test]
         public void UpdatePage_handle_invalid_xml()
         {
-            var dataTypeService = SetupDataTypeService();
-
-            var contentType = new ContentType(-1);
-            var content = new Content("Home", 11, contentType);
-
             string xml = "<home parentID=\"22\">"; // No closing tag
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(), null, TestModels.CreateContent());
             xmlEdit.UpdateContentFromXml(xml);
 
             Assert.IsFalse(xmlEdit.Successful);
-            Assert.AreEqual(11, xmlEdit.Content.ParentId, "ParentId shouldn't be updated");
+            Assert.AreEqual(1, xmlEdit.Content.ParentId, "ParentId shouldn't be updated");
         }
 
         [Test]
         public void UpdatePage_update_value_for_custom_property()
         {
             string propertyAlias = "contentMiddle";
-            var dataTypeService = SetupDataTypeService();
-            var propertyType = new PropertyType(_defaultDataTypeDefinition, propertyAlias);
+            var propertyType = TestModels.CreatePropertyType(propertyAlias);
 
-            var content = MockedContent.CreateContent("Home", propertyType);
+            var content = TestModels.CreateContent(propertyType: propertyType);
             Assert.IsNull(content.GetValue<string>(propertyAlias));
 
             string xml = "<home><contentMiddle>Lorem ipsum!</contentMiddle></home>"; // XML for current IContent as a string
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(), null, content);
             xmlEdit.UpdateContentFromXml(xml);
 
             Assert.IsTrue(xmlEdit.Successful);
@@ -151,16 +149,15 @@ namespace UmbracoXmlEdit.Tests
         public void UpdatePage_remove_properties_that_is_removed_from_XML_string()
         {
             string propertyAlias = "contentMiddle";
-            var dataTypeService = SetupDataTypeService();
-            var propertyType = new PropertyType(_defaultDataTypeDefinition, propertyAlias);
+            var propertyType = TestModels.CreatePropertyType(propertyAlias);
 
-            var content = MockedContent.CreateContent("Home", propertyType);
+            var content = TestModels.CreateContent("Home", propertyType);
             content.SetValue(propertyAlias, "Lorem ipsum!");
             Assert.AreEqual(1, content.Properties.Count);
             Assert.AreEqual("Lorem ipsum!", content.Properties[0].Value);
             
             string xml = "<home></home>"; // XML for current IContent as a string
-            var xmlEdit = new XmlEdit(_logger.Object, dataTypeService.Object, content);
+            var xmlEdit = new XmlEdit(Logger, TestServices.MockDataTypeService(), null, content);
             xmlEdit.UpdateContentFromXml(xml);
 
             Assert.IsTrue(xmlEdit.Successful);

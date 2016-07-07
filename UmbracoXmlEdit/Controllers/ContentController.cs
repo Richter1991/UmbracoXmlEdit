@@ -18,6 +18,7 @@ namespace UmbracoXmlEdit.Controllers
         readonly IUserService _userService = ApplicationContext.Current.Services.UserService;
         readonly ILogger _logger = ApplicationContext.Current.ProfilingLogger.Logger;
         readonly IDataTypeService _dataTypeService = ApplicationContext.Current.Services.DataTypeService;
+        readonly IFileService _fileService = ApplicationContext.Current.Services.FileService;
 
         [HttpGet]
         public string GetXml(string nodeId)
@@ -45,7 +46,7 @@ namespace UmbracoXmlEdit.Controllers
             var currentUser = _userService.GetByUsername(HttpContext.Current.User.Identity.Name);
 
             // Update XML
-            var xmlEdit = new XmlEdit(_logger, _dataTypeService, content);
+            var xmlEdit = new XmlEdit(_logger, _dataTypeService, _fileService, content);
             xmlEdit.UpdateContentFromXml(model.Xml);
 
             if(xmlEdit.Successful)

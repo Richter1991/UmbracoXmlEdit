@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using Umbraco.Core;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Services;
@@ -12,6 +13,7 @@ namespace UmbracoXmlEdit
     {
         readonly ILogger _logger;
         readonly IDataTypeService _dataTypeService;
+        readonly IFileService _fileService;
         IContent _content;
         XElement _xml;
 
@@ -28,10 +30,11 @@ namespace UmbracoXmlEdit
             }
         }
 
-        public XmlEdit(ILogger logger, IDataTypeService dataTypeService, IContent content)
+        public XmlEdit(ILogger logger, IDataTypeService dataTypeService, IFileService fileService, IContent content)
         {
             _logger = logger;
             _dataTypeService = dataTypeService;
+            _fileService = fileService;
             _content = content;
         }
 
@@ -77,68 +80,104 @@ namespace UmbracoXmlEdit
         private void UpdateContentPropertyValues()
         {
             // TODO: Update all possible properties on IContent from node-attributes
+            // TODO: Only set if values is different
 
-            //SetContentPropertyValue<int>(nameof(IContent.Id), "id");
-            //SetContentPropertyValue<Guid>(nameof(IContent.Key), "key");
+            SetContentPropertyValue<int>(nameof(IContent.Id), "id");
+            SetContentPropertyValue<Guid>(nameof(IContent.Key), "key");
             SetContentPropertyValue<int>(nameof(IContent.ParentId), "parentID");
-            //SetContentPropertyValue<int>(nameof(IContent.Level), "level");
-            //SetContentPropertyValue<int>(nameof(IContent.CreatorId), "creatorID");
+            SetContentPropertyValue<int>(nameof(IContent.Level), "level");
+            SetContentPropertyValue<int>(nameof(IContent.CreatorId), "creatorID");
             SetContentPropertyValue<int>(nameof(IContent.SortOrder), "sortOrder");
             SetContentPropertyValue<DateTime>(nameof(IContent.CreateDate), "createDate");
             //SetContentPropertyValue<DateTime>(nameof(IContent.UpdateDate), "updateDate"); // Can't be updated since it'll be updated when object is saved after this
-            //SetContentPropertyValue<string>(nameof(IContent.), "nodeName");
-            //SetContentPropertyValue<>(nameof(IContent.), "urlName");
-            //SetContentPropertyValue<string>(nameof(IContent.Path), "path");
+            SetContentPropertyValue<string>(nameof(IContent.Name), "nodeName");
+            //SetContentPropertyValue<string>(nameof(IContent.), "urlName");
+            SetContentPropertyValue<string>(nameof(IContent.Path), "path");
             //SetContentPropertyValue<>(nameof(IContent.), "nodeType");
             //SetContentPropertyValue<>(nameof(IContent.), "creatorName");
             //SetContentPropertyValue<int>(nameof(IContent.), "writerName");
-            //SetContentPropertyValue<int>(nameof(IContent.WriterId), "writerID");
-            //SetContentPropertyValue<ITemplate>(nameof(IContent.Template), "template");
+            SetContentPropertyValue<int>(nameof(IContent.WriterId), "writerID");
             //SetContentPropertyValue<>(nameof(IContent.), "nodeTypeAlias");
+
+            // Template
+            int templateId;
+            if (int.TryParse(GetXmlAttributeValue("template"), out templateId))
+            {
+                var template = _fileService.GetTemplate(templateId);
+                SetPropertyValue(nameof(IContent.Template), template);
+            }
         }
 
-        private void SetContentPropertyValue<T>(string propertyName, string attributeName)
+        string GetXmlAttributeValue(string attributeName)
         {
-            object objectValue = null;
-
             var attribute = _xml.Attribute(attributeName);
-            if(attribute == null)
+            if (attribute != null)
             {
-                // If attribute doesn't exist in passed XML we don't do anything (not trying to set value and don't remove it)
-                return;
+                return attribute.Value;
+                
             }
+            return null;
+        }
 
-            string value = attribute.Value;
-            if (typeof(T) == typeof(int))
+        object ParseValue<PropertyType>(string value)
+        {
+            bool validParsed = true;
+            object objectValue = null;
+            string valueStr = value.ToString();
+
+            if (typeof(PropertyType) == typeof(int))
             {
                 int intValue;
-                if(int.TryParse(value, out intValue))
+                if (int.TryParse(valueStr, out intValue))
                 {
                     objectValue = intValue;
                 }
                 else
                 {
-                    throw new InvalidCastException(""); // TODO: Message + unit test
+                    validParsed = false;
                 }
             }
-            else if (typeof(T) == typeof(Guid))
+            else if (typeof(PropertyType) == typeof(Guid))
             {
-                objectValue = Guid.Parse(value); // TODO: Try/parse
+                objectValue = Guid.Parse(valueStr); // TODO: Try/parse 
             }
-            else if (typeof(T) == typeof(DateTime))
+            else if (typeof(PropertyType) == typeof(DateTime))
             {
-                objectValue = DateTime.Parse(value); // TODO: Try/parse
+                objectValue = DateTime.Parse(valueStr); // TODO: Try/parse 
             }
             else
             {
                 // Set value as string
-                objectValue = value;
+                objectValue = valueStr;
             }
 
-            if(objectValue != null)
+            if (!validParsed)
             {
-                _content.GetType().GetProperty(propertyName).SetValue(_content, objectValue);
+                throw new InvalidCastException(""); // TODO: Message + unit test
             }
+
+            return objectValue;
+        }
+
+        private void SetPropertyValue(string propertyName, object value)
+        {
+            if (value != null)
+            {
+                _content.GetType().GetProperty(propertyName).SetValue(_content, value);
+            }
+        }
+
+        private void SetContentPropertyValue<PropertyType>(string propertyName, string attributeName)
+        {
+            string attributeValue = GetXmlAttributeValue(attributeName);
+            if(attributeValue == null)
+            {
+                // If attribute doesn't exist or value is null in passed XML we don't do anything (not trying to set value and don't remove it)
+                return;
+            }
+
+            var value = ParseValue<PropertyType>(attributeValue);
+            SetPropertyValue(propertyName, value);
         }
 
         /// <summary>
@@ -168,13 +207,16 @@ namespace UmbracoXmlEdit
         /// </summary>
         private PropertyCollection RemoveMissingProperties(List<XElement> propertyElements, PropertyCollection properties)
         {
-            for (int i = properties.Count - 1; i >= 0; i--)
+            if (properties != null)
             {
-                var property = properties[i];
-                bool propertyExistsInXml = propertyElements.Any(e => e.Name.LocalName == property.Alias);
-                if (!propertyExistsInXml)
+                for (int i = properties.Count - 1; i >= 0; i--)
                 {
-                    properties.RemoveAt(i);
+                    var property = properties[i];
+                    bool propertyExistsInXml = propertyElements.Any(e => e.Name.LocalName == property.Alias);
+                    if (!propertyExistsInXml)
+                    {
+                        properties.RemoveAt(i);
+                    }
                 }
             }
 
