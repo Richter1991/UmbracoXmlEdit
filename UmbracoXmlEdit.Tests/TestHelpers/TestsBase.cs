@@ -5,7 +5,7 @@ namespace UmbracoXmlEdit.Tests.TestHelpers
 {
     public class TestsBase
     {
-        internal readonly ILogger Logger = new Mock<ILogger>().Object;
+        internal readonly ILogger _logger = new Mock<ILogger>().Object;
 
         ServicesBase _testServices;
         internal ServicesBase TestServices

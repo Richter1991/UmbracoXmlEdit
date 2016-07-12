@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-using Umbraco.Core;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Services;
@@ -30,6 +29,10 @@ namespace UmbracoXmlEdit
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="content">IContent/page to update</param>
         public XmlEdit(ILogger logger, IDataTypeService dataTypeService, IFileService fileService, IContent content)
         {
             _logger = logger;
@@ -41,8 +44,7 @@ namespace UmbracoXmlEdit
         /// <summary>
         /// Update content object from XML
         /// </summary>
-        /// <param name="content">Content/page to update</param>
-        /// <param name="xml">Updated XML</param>
+        /// <param name="xml">XML</param>
         public void UpdateContentFromXml(string xml)
         {
             if (TryParse(xml))
@@ -50,7 +52,7 @@ namespace UmbracoXmlEdit
                 var propertyElements = _xml.Elements().ToList();
                 var properties = _content.Properties;
 
-                // UpdateContentPropertyValues
+                // Update value of IContent default-properties from XML-attributes
                 UpdateContentPropertyValues();
 
                 // Update value for custom properties
@@ -77,10 +79,12 @@ namespace UmbracoXmlEdit
             }
         }
 
+        /// <summary>
+        /// Update value of IContent default-properties from XML-attributes
+        /// </summary>
         private void UpdateContentPropertyValues()
         {
-            // TODO: Update all possible properties on IContent from node-attributes
-            // TODO: Only set if values is different
+            // TODO: Only set if values is different than stored value
 
             SetContentPropertyValue<int>(nameof(IContent.Id), "id");
             SetContentPropertyValue<Guid>(nameof(IContent.Key), "key");
@@ -89,15 +93,10 @@ namespace UmbracoXmlEdit
             SetContentPropertyValue<int>(nameof(IContent.CreatorId), "creatorID");
             SetContentPropertyValue<int>(nameof(IContent.SortOrder), "sortOrder");
             SetContentPropertyValue<DateTime>(nameof(IContent.CreateDate), "createDate");
-            //SetContentPropertyValue<DateTime>(nameof(IContent.UpdateDate), "updateDate"); // Can't be updated since it'll be updated when object is saved after this
             SetContentPropertyValue<string>(nameof(IContent.Name), "nodeName");
-            //SetContentPropertyValue<string>(nameof(IContent.), "urlName");
             SetContentPropertyValue<string>(nameof(IContent.Path), "path");
-            //SetContentPropertyValue<>(nameof(IContent.), "nodeType");
-            //SetContentPropertyValue<>(nameof(IContent.), "creatorName");
-            //SetContentPropertyValue<int>(nameof(IContent.), "writerName");
-            SetContentPropertyValue<int>(nameof(IContent.WriterId), "writerID");
-            //SetContentPropertyValue<>(nameof(IContent.), "nodeTypeAlias");
+            SetContentPropertyValue<int>(nameof(IContent.ContentTypeId), "nodeType");
+            //SetContentPropertyValue<string>(nameof(IContent.), "urlName"); // TODO
 
             // Template
             int templateId;
@@ -123,12 +122,12 @@ namespace UmbracoXmlEdit
         {
             bool validParsed = true;
             object objectValue = null;
-            string valueStr = value.ToString();
+            var expectedValueType = typeof(PropertyType);
 
-            if (typeof(PropertyType) == typeof(int))
+            if (expectedValueType == typeof(int))
             {
                 int intValue;
-                if (int.TryParse(valueStr, out intValue))
+                if (int.TryParse(value, out intValue))
                 {
                     objectValue = intValue;
                 }
@@ -137,23 +136,43 @@ namespace UmbracoXmlEdit
                     validParsed = false;
                 }
             }
-            else if (typeof(PropertyType) == typeof(Guid))
+            else if (expectedValueType == typeof(Guid))
             {
-                objectValue = Guid.Parse(valueStr); // TODO: Try/parse 
+                Guid guidValue;
+                if (Guid.TryParse(value, out guidValue))
+                {
+                    objectValue = guidValue;
+                }
+                else
+                {
+                    validParsed = false;
+                }
             }
-            else if (typeof(PropertyType) == typeof(DateTime))
+            else if (expectedValueType == typeof(DateTime))
             {
-                objectValue = DateTime.Parse(valueStr); // TODO: Try/parse 
+                DateTime dateTimeValue;
+                if (DateTime.TryParse(value, out dateTimeValue))
+                {
+                    objectValue = dateTimeValue;
+                }
+                else
+                {
+                    validParsed = false;
+                }
+            }
+            else if(expectedValueType == typeof(string))
+            {
+                // Set value as string
+                objectValue = value;
             }
             else
             {
-                // Set value as string
-                objectValue = valueStr;
+                throw new NotImplementedException(string.Format("Type '{0}' is not implemented", expectedValueType.Name));
             }
 
             if (!validParsed)
             {
-                throw new InvalidCastException(""); // TODO: Message + unit test
+                throw new InvalidCastException(string.Format("Couldn't parse value '{0}' to type '{1}'", value, expectedValueType.Name));
             }
 
             return objectValue;
@@ -196,7 +215,7 @@ namespace UmbracoXmlEdit
                 }
                 else
                 {
-                    // TODO: Show in UI that property couldn't be added 
+                    // TODO: Show in UI that property couldn't be added
                     _logger.Info(GetType(), string.Format("Couldn't add property since it's not a valid PropertyType. PropertyType.Alias: '{0}'", propertyTypeAlias));
                 }
             }
