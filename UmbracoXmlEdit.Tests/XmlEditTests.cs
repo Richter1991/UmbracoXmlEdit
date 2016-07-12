@@ -65,7 +65,6 @@ namespace UmbracoXmlEdit.Tests
                 new XAttribute(XName.Get("createDate"), "2016-04-23T13:37:59"),
                 new XAttribute(XName.Get("nodeName"), "My firstpage"),
                 new XAttribute(XName.Get("creatorID"), 123),
-                new XAttribute(XName.Get("writerID"), 99),
                 new XAttribute(XName.Get("path"), "-1,1077,1078"),
                 new XAttribute(XName.Get("level"), 3),
                 new XAttribute(XName.Get("key"), key.ToString()),
@@ -85,7 +84,6 @@ namespace UmbracoXmlEdit.Tests
             Assert.AreEqual(7, updatedContent.SortOrder);
             Assert.AreEqual("My firstpage", updatedContent.Name);
             Assert.AreEqual(123, updatedContent.CreatorId);
-            Assert.AreEqual(99, updatedContent.WriterId);
             Assert.AreEqual("-1,1077,1078", updatedContent.Path);
             Assert.AreEqual(3, updatedContent.Level);
             Assert.AreEqual(key, updatedContent.Key);
