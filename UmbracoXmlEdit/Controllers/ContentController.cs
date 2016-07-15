@@ -46,10 +46,10 @@ namespace UmbracoXmlEdit.Controllers
             var currentUser = _userService.GetByUsername(HttpContext.Current.User.Identity.Name);
 
             // Update XML
-            var xmlEdit = new XmlEdit(_logger, _dataTypeService, _fileService, content);
-            xmlEdit.UpdateContentFromXml(model.Xml);
+            var xmlEdit = new XmlEdit(_logger, _dataTypeService, _fileService, content, model.Xml);
+            xmlEdit.UpdateContentFromXml();
 
-            if(xmlEdit.Successful)
+            if(xmlEdit.IsValidXml)
             {
                 // Save page
                 _contentService.Save(xmlEdit.Content, currentUser.Id);

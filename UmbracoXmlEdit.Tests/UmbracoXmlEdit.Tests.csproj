@@ -291,6 +291,7 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="CustomPropertiesTests.cs" />
     <Compile Include="TestHelpers\ModelsBase.cs" />
     <Compile Include="TestHelpers\ServicesBase.cs" />
     <Compile Include="TestHelpers\TestsBase.cs" />
