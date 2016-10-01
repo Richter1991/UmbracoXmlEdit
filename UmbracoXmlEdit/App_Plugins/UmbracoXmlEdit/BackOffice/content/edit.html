@@ -1,10 +1,21 @@
+<link rel="stylesheet" href="/umbraco/lib/codemirror/lib/codemirror.css">
+<style>
+    .CodeMirror {
+        height: 100%;
+    }
+</style>
+<script src="/umbraco/lib/codemirror/lib/codemirror.js"></script>
+<script src="/umbraco/lib/codemirror/mode/xml/xml.js"></script>
+
 <div ng-controller="XmlEdit.ContentController" style="padding: 0 5px 0 15px;">
     <h4>Editing "<span ng-bind="currentNode.name"></span>"</h4>
-    <textarea name="textarea" class="umb-editor umb-textarea" ng-model="model.value" rows="25"></textarea>
-    <a href="" class="btn btn-link" ng-click="hideDialog()">
-        <localize key="general_cancel">Cancel</localize>
-    </a>
-    <button class="btn btn-success" ng-click="saveXml()">
-        <localize key="buttons_save">Save</localize>
-    </button>
+    <textarea id="xmledit-content" name="textarea" class="umb-editor umb-textarea prettyprint lang-xml" ng-model="model.value" rows="25"></textarea>
+    <div style="float: right; margin: 10px;">
+        <a href="" class="btn btn-link" ng-click="hideDialog()">
+            <localize key="general_cancel">Cancel</localize>
+        </a>
+        <button class="btn btn-success" ng-click="saveXml()">
+            <localize key="buttons_save">Save</localize>
+        </button>
+    </div>
 </div>
