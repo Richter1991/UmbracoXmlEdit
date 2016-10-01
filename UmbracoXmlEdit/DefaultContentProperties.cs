@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Xml.Linq;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
@@ -7,8 +8,26 @@ using UmbracoXmlEdit.Helpers;
 
 namespace UmbracoXmlEdit
 {
-    class DefaultContentProperties
+    public class DefaultContentProperties
     {
+        public static List<string> InvalidAttributes
+        {
+            get
+            {
+                return new List<string>
+                {
+                    "updateDate",
+                    "urlName",
+                    "isDoc",
+                    "nodeType",
+                    "creatorName",
+                    "writerName",
+                    "writerID",
+                    "nodeTypeAlias"
+                };
+            }
+        }
+
         readonly ILogger _logger;
         readonly IFileService _fileService;
 
@@ -39,7 +58,6 @@ namespace UmbracoXmlEdit
             SetPropertyValueFromAttribute<string>(nameof(IContent.Name), "nodeName");
             SetPropertyValueFromAttribute<string>(nameof(IContent.Path), "path");
             SetPropertyValueFromAttribute<int>(nameof(IContent.ContentTypeId), "nodeType");
-            //SetContentPropertyValue<string>(nameof(IContent.), "urlName"); // TODO
 
             // Template
             int templateId;

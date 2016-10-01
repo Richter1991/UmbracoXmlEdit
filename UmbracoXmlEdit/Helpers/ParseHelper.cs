@@ -1,10 +1,20 @@
 ﻿using System;
+using System.Linq;
+using System.Xml.Linq;
+using Umbraco.Core.Models;
+using Umbraco.Core.Services;
 
 namespace UmbracoXmlEdit.Helpers
 {
-    class ParseHelper
+    public class ParseHelper
     {
-        internal static object GetTypedValue<T>(string value)
+        readonly IPackagingService _packagingService;
+        public ParseHelper(IPackagingService packagingService)
+        {
+            _packagingService = packagingService;
+        }
+
+        public static object GetTypedValue<T>(string value)
         {
             var currentType = typeof(T);
             object typedValue = null;
@@ -62,6 +72,22 @@ namespace UmbracoXmlEdit.Helpers
             }
 
             return typedValue;
+        }
+
+        public XElement ToXml(IContent page)
+        {
+            // Convert to XML
+            var xml = page.ToXml(_packagingService);
+
+            // Remove attributes that can't be updated
+            xml.Attributes().Where(a => IsInvalidAttibute(a)).Remove();
+
+            return xml;
+        }
+
+        bool IsInvalidAttibute(XAttribute xmlAttribute)
+        {
+            return DefaultContentProperties.InvalidAttributes.Any(a => a == xmlAttribute.Name.LocalName);
         }
     }
 }

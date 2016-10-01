@@ -5,8 +5,10 @@ using Umbraco.Core;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Services;
+using Umbraco.Web;
 using Umbraco.Web.Mvc;
 using Umbraco.Web.WebApi;
+using UmbracoXmlEdit.Helpers;
 using UmbracoXmlEdit.Models;
 
 namespace UmbracoXmlEdit.Controllers
@@ -14,23 +16,30 @@ namespace UmbracoXmlEdit.Controllers
     [PluginController("XmlEdit")]
     public class ContentController : UmbracoAuthorizedApiController 
     {
-        readonly IContentService _contentService = ApplicationContext.Current.Services.ContentService;
-        readonly IUserService _userService = ApplicationContext.Current.Services.UserService;
-        readonly ILogger _logger = ApplicationContext.Current.ProfilingLogger.Logger;
-        readonly IDataTypeService _dataTypeService = ApplicationContext.Current.Services.DataTypeService;
-        readonly IFileService _fileService = ApplicationContext.Current.Services.FileService;
+        readonly IContentService _contentService;
+        readonly IUserService _userService;
+        readonly ILogger _logger;
+        readonly IDataTypeService _dataTypeService;
+        readonly IFileService _fileService;
+        readonly IPackagingService _packagingService;
+
+        ParseHelper _parseHelper;
+        public ContentController()
+        {
+            _contentService = ApplicationContext.Current.Services.ContentService;
+            _userService = ApplicationContext.Current.Services.UserService;
+            _logger = ApplicationContext.Current.ProfilingLogger.Logger;
+            _dataTypeService = ApplicationContext.Current.Services.DataTypeService;
+            _fileService = ApplicationContext.Current.Services.FileService;
+            _packagingService = ApplicationContext.Current.Services.PackagingService;
+            _parseHelper = new ParseHelper(_packagingService);
+        }
 
         [HttpGet]
         public string GetXml(string nodeId)
         {
-            var page = ApplicationContext.Services.ContentService.GetById(int.Parse(nodeId));
-            return ToXml(page);
-        }
-
-        private string ToXml(IContent page)
-        {
-            var xml = page.ToXml(ApplicationContext.Services.PackagingService);
-            return xml.ToString();
+            var page = _contentService.GetById(int.Parse(nodeId));
+            return _parseHelper.ToXml(page).ToString();
         }
 
         [HttpPost]
@@ -61,8 +70,8 @@ namespace UmbracoXmlEdit.Controllers
 
             // Get the page that we just saved
             content = _contentService.GetById(content.Id);
-
-            return ToXml(content);
+            
+            return _parseHelper.ToXml(content).ToString();
         }
     }
 }
