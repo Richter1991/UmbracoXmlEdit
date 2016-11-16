@@ -11,6 +11,8 @@
 * Removed attributes that isn't possible to change from the XML 
 * Code hightlighter</releaseNotes>
         <copyright>© 2016 Tobias Richter</copyright>
+        <iconUrl>http://i.imgur.com/4EPXjWq.png</iconUrl>
+        <tags>Umbraco CMS XML edit content plugin</tags>
         <dependencies>
             <dependency id="UmbracoCms.Core" version="7.3.0" />
         </dependencies>
