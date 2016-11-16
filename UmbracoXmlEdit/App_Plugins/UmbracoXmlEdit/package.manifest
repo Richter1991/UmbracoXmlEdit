@@ -1,5 +1,5 @@
 ﻿{       
     javascript: [
 		'~/App_Plugins/UmbracoXmlEdit/BackOffice/content/edit-controller.js'
-    ],
+    ]
 }

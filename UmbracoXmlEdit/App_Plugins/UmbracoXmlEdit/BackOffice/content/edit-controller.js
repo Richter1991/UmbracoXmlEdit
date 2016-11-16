@@ -20,6 +20,10 @@
                             lineWrapping: false,
                             lineNumbers: true
                         });
+
+                        codeEditor.on('change', function (obj) {
+                            $scope.model.value = obj.getValue();
+                        });
                     }
                 }
             }, 10);

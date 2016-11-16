@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>UmbracoXmlEdit</id>
+        <version>1.1.2</version>
+        <title>Umbraco XML Edit</title>
+        <authors>Tobias Richter</authors>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Edit content/settings of nodes as XML directly in Umbraco UI</description>
+        <releaseNotes>* Possibility to change page-properties from attributes in XML 
+* Removed attributes that isn't possible to change from the XML 
+* Code hightlighter</releaseNotes>
+        <copyright>© 2016 Tobias Richter</copyright>
+        <dependencies>
+            <dependency id="UmbracoCms.Core" version="7.3.0" />
+        </dependencies>
+    </metadata>
+</package>
