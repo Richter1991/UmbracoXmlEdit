@@ -9,5 +9,8 @@ namespace UmbracoXmlEdit.Models
 
         [JsonProperty("xml")]
         public string Xml { get; set; }
+
+        [JsonProperty("publish")]
+        public bool Publish { get; set; }
     }
 }

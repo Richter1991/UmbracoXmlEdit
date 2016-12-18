@@ -60,8 +60,17 @@ namespace UmbracoXmlEdit.Controllers
 
             if(xmlEdit.IsValidXml)
             {
-                // Save page
-                _contentService.Save(xmlEdit.Content, currentUser.Id);
+                if(model.Publish)
+                {
+                    // Save and publish page
+                    _contentService.SaveAndPublishWithStatus(xmlEdit.Content, currentUser.Id);
+                }
+                else
+                {
+                    // Save page
+                    _contentService.Save(xmlEdit.Content, currentUser.Id);
+                }
+
             }
             else
             {

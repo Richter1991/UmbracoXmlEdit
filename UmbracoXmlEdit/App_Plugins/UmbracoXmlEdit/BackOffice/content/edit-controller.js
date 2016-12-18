@@ -54,10 +54,11 @@
             $scope.nav.hideDialog(true);
         }
 
-        $scope.saveXml = function () {
+        $scope.saveXml = function (publish) {
             var data = {
                 nodeId: currentNodeId,
-                xml: $scope.model.value
+                xml: $scope.model.value,
+                publish: publish
             };
 
             $http({
@@ -65,7 +66,7 @@
                 url: 'backoffice/XmlEdit/content/savexml',
                 data: data
             }).then(function (response) {
-                notificationsService.success('Successfully saved XML');
+                notificationsService.success(getSuccessMessage(publish));
                 updateModelValue(response);
                 $scope.hideDialog();
                 // TODO: Refresh property values
@@ -73,6 +74,16 @@
                 //JSON.stringify(response)
                 notificationsService.error("Couldn't save XML");
             });
+        }
+
+        function getSuccessMessage(publish) {
+            var message = 'Successfully saved';
+            if (publish) {
+                message += ' and published';
+            }
+            message += ' XML';
+
+            return message;
         }
     }]);
 })();
