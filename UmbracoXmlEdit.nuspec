@@ -16,6 +16,6 @@
         </dependencies>
     </metadata>
   <files>
-    <file src="UmbracoXmlEdit\App_Plugins\UmbracoXmlEdit\**\*.*" target="content\App_Plugins\UmbracoXmlEdit\**\*.*" />
+    <file src="UmbracoXmlEdit\App_Plugins\**\*.*" target="content\App_Plugins\" />
   </files>
 </package>
